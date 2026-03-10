@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>表單申請及查詢</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+        .query-container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .form-label {
+            font-weight: 500;
+            color: #333;
+        }
+        .result-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .table-responsive {
+            margin-top: 15px;
+        }
+        table {
+            font-size: 14px;
+        }
+        th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        .required {
+            color: red;
+            margin-left: 2px;
+        }
+        .btn-search {
+            background-color: #8a9199;
+            border-color: #8a9199;
+            color: white;
+            margin-right: 10px;
+        }
+        .btn-search:hover {
+            background-color: #6c757d;
+            border-color: #6c757d;
+        }
+        .btn-apply {
+            background-color: #6ea8fe;
+            border-color: #6ea8fe;
+            color: white;
+        }
+        .btn-apply:hover {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+            color: white;
+        }
+        .btn-export {
+            background-color: #198754;
+            border-color: #198754;
+            color: white;
+        }
+        .btn-export:hover {
+            background-color: #157347;
+            border-color: #146c43;
+            color: white;
+        }
+        .btn-open {
+            background-color: #ffb380;
+            border-color: #ffb380;
+            color: white;
+            padding: 2px 12px;
+            font-size: 12px;
+        }
+        .btn-open:hover {
+            background-color: #ff9f5c;
+            border-color: #ff9850;
+            color: white;
+        }
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .table-responsive.empty {
+            display: none;
+        }
+
+        .tree-item {
+            user-select: none;
+        }
+        .tree-toggle {
+            cursor: pointer;
+        }
+        .tree-children {
+            margin-left: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="query-container">
+            <h2 class="mb-4">表單申請及查詢</h2>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">表單名稱<span class="required">*</span></label>
+                    <select class="form-select" id="form" onchange="search()">
+                        <option value="">請選擇表單</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">表單單號</label>
+                    <input type="text" class="form-control" id="caseNo" oninput="search()">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6" id="viewerCol">
+                    <label class="form-label">查看對象</label>
+                    <div class="input-group">
+                        <select class="form-select" id="viewerType" onchange="onViewerTypeChange()">
+                            <option value="site">案場</option>
+                            <option value="org" selected>組織</option>
+                        </select>
+                        <input type="text" class="form-control" id="viewerTarget" placeholder="請選擇查看對象" readonly>
+                        <button type="button" class="btn btn-outline-secondary" id="viewerSelectBtn" onclick="selectViewer()">
+                            <i class="bi bi-diagram-3"></i> 選擇
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-6" id="categoryCol">
+                    <label class="form-label">處理種類</label>
+                    <select class="form-select" id="category" onchange="toggleApplicantField(); search();">
+                        <option value="">不限</option>
+                        <option value="人事">本人申請表單</option>
+                        <option value="行政">本人承辦表單</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6 offset-md-6" id="applicantField" style="display: none;">
+                    <label class="form-label">送單人</label>
+                    <input type="text" class="form-control" id="applicant" oninput="search()">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">申請日期</label>
+                    <div class="row">
+                        <div class="col-5">
+                            <input type="date" class="form-control" id="startDate" onchange="search()">
+                        </div>
+                        <div class="col-2 text-center pt-2">-</div>
+                        <div class="col-5">
+                            <input type="date" class="form-control" id="endDate" onchange="search()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                </div>
+                <div class="col-md-6">
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-12 text-end">
+                    <button class="btn btn-search" onclick="search()">
+                        <i class="bi bi-search"></i> 查詢
+                    </button>
+                    <button class="btn btn-apply" onclick="applyForm()">
+                        <i class="bi bi-plus-circle"></i> 申請
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="result-container" id="resultContainer">
+            <div class="result-header">
+                <h5 id="resultCount">查詢結果：共 0 筆資料</h5>
+                <button class="btn btn-export" onclick="exportData()">
+                    <i class="bi bi-download"></i> 匯出
+                </button>
+            </div>
+            <ul class="nav nav-tabs mb-2" id="statusTabs" role="tablist"></ul>
+            <div class="table-responsive empty" id="tableContainer">
+                <table class="table table-hover table-bordered">
+                    <thead>
+                        <tr>
+                            <th>案場</th>
+                            <th>申請人</th>
+                            <th>狀態</th>
+                            <th>送單人</th>
+                            <th>申請日期</th>
+                            <th>目前關卡</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultTable">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 查看對象選擇彈窗 -->
+    <div class="modal fade" id="viewerModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="viewerModalTitle">選擇</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="viewerModalBody"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 模擬資料 - 共 15 筆
+        const data = [
+            {
+                formName: '人事｜名片申請',
+                status: '審批中',
+                site: '皇普MOMA',
+                applicantName: '魏群典',
+                cDeptId: 39,
+                applicant: '葉清宗',
+                applyTime: '2025/12/19 15:21:49',
+                currentStage: '02-人事(陳姿璇)'
+            },
+            {
+                formName: '人事｜名片申請',
+                status: '已結案',
+                site: '昕見築',
+                applicantName: '黃柏瑄',
+                cDeptId: 40,
+                applicant: '邱世華',
+                applyTime: '2025/12/11 09:51:33',
+                currentStage: '03-行政(陳亭潔)、03-行政(會簽)(葉清宗,黃正忠,李美貞)'
+            },
+            {
+                formName: '人事｜名片申請',
+                status: '被取消',
+                site: '長堤凰澄',
+                applicantName: '卓燕君',
+                cDeptId: 3,
+                applicant: '季俐君',
+                applyTime: '2025/12/02 16:37:31',
+                currentStage: '05-執行長(黃正忠)'
+            },
+            {
+                formName: '人事｜名片申請',
+                status: '被暫停',
+                site: '智匯學',
+                applicantName: '袁芳梅',
+                cDeptId: 4,
+                applicant: '陳亭潔',
+                applyTime: '2025/12/02 16:22:21',
+                currentStage: '04-總經理(葉清宗)'
+            },
+            {
+                formName: '人事｜名片申請',
+                status: '審批中',
+                site: '皇普MOMA',
+                applicantName: '黃于凌',
+                cDeptId: 39,
+                applicant: '陳亭潔',
+                applyTime: '2025/12/02 16:20:30',
+                currentStage: '01-申請人(黃于凌)'
+            },
+            {
+                formName: '人事｜名片申請',
+                status: '已結案',
+                site: '昕見築',
+                applicantName: '徐浚棋',
+                cDeptId: 40,
+                applicant: '陳姿璇',
+                applyTime: '2025/12/02 14:21:43',
+                currentStage: '07-總經理(葉清宗)、08-執行長(黃正忠)'
+            },
+            {
+                formName: '人事｜名片申請',
+                status: '審批中',
+                site: '長堤凰澄',
+                applicantName: '曾宥彤',
+                cDeptId: 38,
+                applicant: '朱洪群',
+                applyTime: '2025/11/28 10:15:22',
+                currentStage: '03-行政(李美貞)'
+            },
+            {
+                formName: '人事｜名片申請',
+                status: '已結案',
+                site: '智匯學',
+                applicantName: '賴怡如',
+                cDeptId: 40,
+                applicant: '黃正忠',
+                applyTime: '2025/11/25 14:33:18',
+                currentStage: '06-總經理(葉清宗)'
+            },
+            {
+                formName: '人事｜名片申請',
+                status: '被取消',
+                site: '皇普MOMA',
+                applicantName: '邱若婷',
+                cDeptId: 39,
+                applicant: '陳亭潔',
+                applyTime: '2025/11/20 11:48:55',
+                currentStage: '02-人事(陳姿璇)'
+            },
+            {
+                formName: '人事｜名片申請',
+                status: '審批中',
+                site: '昕見築',
+                applicantName: '黃宗毅',
+                cDeptId: 38,
+                applicant: '葉清宗',
+                applyTime: '2025/11/18 09:27:41',
+                currentStage: '04-總經理(葉清宗)'
+            },
+            {
+                formName: '人事｜試用員工考核表',
+                status: '審批中',
+                site: '皇普MOMA',
+                applicantName: '王士豪',
+                cDeptId: 40,
+                department: '業務部一',
+                applicant: '陳姿璇',
+                applyTime: '2025/12/15 10:30:25',
+                currentStage: '02-人事(陳姿璇)'
+            },
+            {
+                formName: '人事｜試用員工考核表',
+                status: '已結案',
+                site: '昕見築',
+                applicantName: '呂權展',
+                cDeptId: 38,
+                department: '業務部二',
+                applicant: '黃正忠',
+                applyTime: '2025/11/20 14:15:30',
+                currentStage: '05-執行長(黃正忠)'
+            },
+            {
+                formName: '會議記錄',
+                status: '審批中',
+                site: '皇普MOMA',
+                applicantName: '葉清宗',
+                cDeptId: 1,
+                applicant: '李美貞',
+                applyTime: '2025/12/20 14:30:15',
+                currentStage: '02-主管審核(葉清宗)',
+                meetingType: '週會',
+                meetingTime: '2025/12/20 09:00',
+                location: '總公司會議室A',
+                chairman: '葉清宗',
+                recorder: '李美貞'
+            },
+            {
+                formName: '會議記錄',
+                status: '已結案',
+                site: '昕見築',
+                applicantName: '季俐君',
+                cDeptId: 2,
+                applicant: '謝晉純',
+                applyTime: '2025/12/18 10:45:22',
+                currentStage: '03-歷程歸檔(陳姿璇)',
+                meetingType: '月會',
+                meetingTime: '2025/12/18 14:00',
+                location: '昕見築會議室B',
+                chairman: '季俐君',
+                recorder: '謝晉純'
+            },
+            {
+                formName: '會議記錄',
+                status: '審批中',
+                site: '長堤凰澄',
+                applicantName: '魏群典',
+                cDeptId: 39,
+                applicant: '黃于凌',
+                applyTime: '2025/12/17 16:20:08',
+                currentStage: '01-會議主持人確認(魏群典)',
+                meetingType: '週會',
+                meetingTime: '2025/12/17 15:30',
+                location: '長堤凰澄辦公室',
+                chairman: '魏群典',
+                recorder: '黃于凌'
+            },
+            {
+                formName: '人事｜名片申請',
+                status: '審批中',
+                site: '皇普MOMA',
+                applicantName: '李美貞',
+                cDeptId: 1,
+                applicant: '葉清宗',
+                applyTime: '2025/12/16 11:05:10',
+                currentStage: '02-人事(陳姿璇)'
+            },
+            {
+                formName: '人事｜名片申請',
+                status: '已結案',
+                site: '昕見築',
+                applicantName: '陳亭潔',
+                cDeptId: 2,
+                applicant: '謝晉純',
+                applyTime: '2025/12/10 17:22:40',
+                currentStage: '04-總經理(葉清宗)'
+            },
+            {
+                formName: '人事｜試用員工考核表',
+                status: '審批中',
+                site: '智匯學',
+                applicantName: '黃正忠',
+                cDeptId: 1,
+                department: '總管理處',
+                applicant: '陳姿璇',
+                applyTime: '2025/12/14 09:40:12',
+                currentStage: '03-主管(葉清宗)'
+            },
+            {
+                formName: '人事｜試用員工考核表',
+                status: '審批中',
+                site: '長堤凰澄',
+                applicantName: '季俐君',
+                cDeptId: 2,
+                department: '管理處-管理',
+                applicant: '陳姿璇',
+                applyTime: '2025/12/13 16:18:55',
+                currentStage: '02-人事(陳姿璇)'
+            },
+            {
+                formName: '人事｜試用員工考核表',
+                status: '已結案',
+                site: '昕見築',
+                applicantName: '卓燕君',
+                cDeptId: 3,
+                department: '管理處-會計一',
+                applicant: '李美貞',
+                applyTime: '2025/12/09 13:03:27',
+                currentStage: '06-執行長(黃正忠)'
+            },
+            {
+                formName: '人事｜試用員工考核表',
+                status: '審批中',
+                site: '皇普MOMA',
+                applicantName: '袁芳梅',
+                cDeptId: 4,
+                department: '管理處-會計二',
+                applicant: '李美貞',
+                applyTime: '2025/12/08 10:12:44',
+                currentStage: '04-總經理(葉清宗)'
+            },
+            {
+                formName: '人事｜試用員工考核表',
+                status: '審批中',
+                site: '昕見築',
+                applicantName: '魏群典',
+                cDeptId: 39,
+                department: '資訊部',
+                applicant: '陳姿璇',
+                applyTime: '2025/12/07 18:30:05',
+                currentStage: '03-主管(魏群典)'
+            },
+            {
+                formName: '會議記錄',
+                status: '審批中',
+                site: '皇普MOMA',
+                applicantName: '卓燕君',
+                cDeptId: 3,
+                applicant: '蔡佳慧',
+                applyTime: '2025/12/12 09:10:00',
+                currentStage: '02-主管審核(卓燕君)',
+                meetingType: '月會',
+                meetingTime: '2025/12/12 09:00',
+                location: '總公司會議室B',
+                chairman: '卓燕君',
+                recorder: '蔡佳慧'
+            },
+            {
+                formName: '會議記錄',
+                status: '已結案',
+                site: '智匯學',
+                applicantName: '袁芳梅',
+                cDeptId: 4,
+                applicant: '張雅旻',
+                applyTime: '2025/12/06 14:52:30',
+                currentStage: '03-歷程歸檔(李美貞)',
+                meetingType: '週會',
+                meetingTime: '2025/12/06 14:00',
+                location: '智匯學會議室',
+                chairman: '袁芳梅',
+                recorder: '張雅旻'
+            },
+            {
+                formName: '會議記錄',
+                status: '審批中',
+                site: '長堤凰澄',
+                applicantName: '呂權展',
+                cDeptId: 38,
+                applicant: '朱洪群',
+                applyTime: '2025/12/05 11:25:18',
+                currentStage: '01-會議主持人確認(呂權展)',
+                meetingType: '週會',
+                meetingTime: '2025/12/05 10:30',
+                location: '長堤凰澄辦公室',
+                chairman: '呂權展',
+                recorder: '朱洪群'
+            },
+            {
+                formName: '會議記錄',
+                status: '審批中',
+                site: '昕見築',
+                applicantName: '王士豪',
+                cDeptId: 40,
+                applicant: '黃柏瑄',
+                applyTime: '2025/12/04 16:08:42',
+                currentStage: '02-主管審核(王士豪)',
+                meetingType: '月會',
+                meetingTime: '2025/12/04 15:00',
+                location: '昕見築會議室A',
+                chairman: '王士豪',
+                recorder: '黃柏瑄'
+            }
+        ];
+
+        // 初始化表單下拉選單
+        function initFormDropdown() {
+            const formSelect = document.getElementById('form');
+            const uniqueForms = [...new Set(data.map(item => item.formName))];
+            uniqueForms.forEach(form => {
+                const option = document.createElement('option');
+                option.value = form;
+                option.textContent = form;
+                formSelect.appendChild(option);
+            });
+        }
+
+        // 搜尋函數
+        function search() {
+            const category = document.getElementById('category').value;
+            const form = document.getElementById('form').value;
+            const viewerType = document.getElementById('viewerType').value;
+            const viewerTarget = (document.getElementById('viewerTarget').value || '').trim();
+            const applicant = document.getElementById('applicant').value;
+            const caseNo = document.getElementById('caseNo').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+
+            const caseNoText = (caseNo || '').trim();
+
+            // 表單名稱必選：未選表單直接顯示 0 筆（保留初始 0 筆行為）
+            if (!form) {
+                displayResultsWithStatusTabs([]);
+                return;
+            }
+
+            // 組織（選單位）時，優先以「單位內成員」判斷資料歸屬
+            let orgDeptMemberNameSet = null;
+            if (viewerType === 'org' && viewerSelection && viewerSelection.kind === 'org-dept') {
+                const memberNames = Array.isArray(viewerSelection.memberNames) ? viewerSelection.memberNames : [];
+                if (memberNames.length) orgDeptMemberNameSet = new Set(memberNames);
+            }
+
+            let filtered = data.filter((item, index) => {
+                // 表單名稱篩選
+                if (form && item.formName !== form) return false;
+
+                // 查看對象篩選（取代原本的案場下拉篩選）
+                if (viewerType === 'site') {
+                    const site = viewerSelection && viewerSelection.kind === 'site' ? viewerSelection.site : viewerTarget;
+                    if (site && item.site !== site) return false;
+                }
+
+                if (viewerType === 'org') {
+                    if (viewerSelection && viewerSelection.kind === 'org-dept') {
+                        const deptId = String(getItemDeptId(item) || '');
+                        const inDeptById = deptId ? viewerSelection.deptIds.includes(deptId) : false;
+                        const name = String(item.applicantName || '');
+                        const inDeptByMember = orgDeptMemberNameSet ? orgDeptMemberNameSet.has(name) : false;
+                        if (!inDeptById && !inDeptByMember) return false;
+                    } else if (viewerSelection && viewerSelection.kind === 'org-person') {
+                        const name = viewerSelection.name;
+                        const isApplicant = (item.applicantName || '') === name;
+                        const isSubmitter = (item.applicant || '') === name;
+                        const inStage = String(item.currentStage || '').includes(name);
+                        if (!isApplicant && !isSubmitter && !inStage) return false;
+                    } else if (viewerTarget) {
+                        // fallback（避免有手動輸入或舊值殘留時完全查不到）
+                        const deptName = getDeptNameById(getItemDeptId(item));
+                        if (deptName && !deptName.includes(viewerTarget)) return false;
+                    }
+                }
+                
+                // 表單單號（包含）篩選
+                if (caseNoText && !getItemCaseNo(item, index).includes(caseNoText)) return false;
+
+                // 送單人篩選
+                if (applicant && !item.applicant.includes(applicant)) return false;
+                
+                // 申請日期篩選
+                if (startDate || endDate) {
+                    const itemDate = applyTimeToISODate(item.applyTime);
+                    if (!itemDate) return false;
+                    if (startDate && itemDate < startDate) return false;
+                    if (endDate && itemDate > endDate) return false;
+                }
+                
+                return true;
+            });
+
+            displayResultsWithStatusTabs(filtered);
+        }
+
+        function applyTimeToISODate(applyTime) {
+            const datePart = (applyTime || '').split(' ')[0];
+            if (!datePart) return '';
+            return datePart.replaceAll('/', '-');
+        }
+
+        // 查看對象（Prototype）
+        // 來源：組織及案場資料/組織部門.xlsx、組織部門成員.xlsx（已精簡）
+        const orgData = {"deptList":[{"cDeptId":1,"cDeptName":"總管理處","cParentDeptId":0},{"cDeptId":2,"cDeptName":"管理處-管理","cParentDeptId":0},{"cDeptId":3,"cDeptName":"管理處-會計一","cParentDeptId":0},{"cDeptId":4,"cDeptName":"管理處-會計二","cParentDeptId":0},{"cDeptId":38,"cDeptName":"業務部二","cParentDeptId":0},{"cDeptId":39,"cDeptName":"資訊部","cParentDeptId":0},{"cDeptId":40,"cDeptName":"業務部一","cParentDeptId":0}],"memberList":[{"cDeptId":1,"cName":"預設管理者","cJobTitle":"系統管理者"},{"cDeptId":1,"cName":"tina","cJobTitle":"系統管理者"},{"cDeptId":2,"cName":"季俐君","cJobTitle":"行政主管"},{"cDeptId":4,"cName":"徐婉瑄","cJobTitle":"會計"},{"cDeptId":4,"cName":"新合達","cJobTitle":"新合達"},{"cDeptId":4,"cName":"新合達測試","cJobTitle":"新合達"},{"cDeptId":1,"cName":"API 測試","cJobTitle":"系統管理者"},{"cDeptId":2,"cName":"陳姿璇","cJobTitle":"人事"},{"cDeptId":1,"cName":"BPM-SSO測試","cJobTitle":"系統管理者"},{"cDeptId":40,"cName":"王士豪","cJobTitle":"專案"},{"cDeptId":40,"cName":"楊沛然","cJobTitle":"副專"},{"cDeptId":40,"cName":"黃柏瑄","cJobTitle":"業務"},{"cDeptId":40,"cName":"徐浚棋","cJobTitle":"業務"},{"cDeptId":40,"cName":"蔡淑鈴","cJobTitle":"銷售"},{"cDeptId":40,"cName":"賴怡如","cJobTitle":"銷售"},{"cDeptId":40,"cName":"林琬苹","cJobTitle":"銷售"},{"cDeptId":38,"cName":"呂權展","cJobTitle":"主委"},{"cDeptId":38,"cName":"朱洪群","cJobTitle":"專案"},{"cDeptId":38,"cName":"黃宗毅","cJobTitle":"副專"},{"cDeptId":38,"cName":"曾宥彤","cJobTitle":"業務"},{"cDeptId":3,"cName":"方薈荏","cJobTitle":"會計"},{"cDeptId":3,"cName":"卓燕君","cJobTitle":"會計主管"},{"cDeptId":2,"cName":"林佳怡","cJobTitle":"人事"},{"cDeptId":4,"cName":"袁芳梅","cJobTitle":"會計主管"},{"cDeptId":1,"cName":"葉清宗","cJobTitle":"總經理"},{"cDeptId":1,"cName":"黃正忠","cJobTitle":"執行長"},{"cDeptId":1,"cName":"李美貞","cJobTitle":"財務長"},{"cDeptId":38,"cName":"王文鵬","cJobTitle":"副總"},{"cDeptId":40,"cName":"洪孟鏹","cJobTitle":"副總"},{"cDeptId":39,"cName":"劉孝華","cJobTitle":"摩爾數位"},{"cDeptId":39,"cName":"魏群典","cJobTitle":"資訊主管"},{"cDeptId":39,"cName":"黃于凌","cJobTitle":"摩爾數位"},{"cDeptId":39,"cName":"洪明明","cJobTitle":"摩爾數位"},{"cDeptId":39,"cName":"袁孟婕","cJobTitle":"摩爾數位"},{"cDeptId":39,"cName":"邱若婷","cJobTitle":"摩爾數位"},{"cDeptId":3,"cName":"蔡佳慧","cJobTitle":"會計"},{"cDeptId":4,"cName":"張雅旻","cJobTitle":"出納"},{"cDeptId":4,"cName":"李友琳","cJobTitle":"會計"},{"cDeptId":2,"cName":"陳亭潔","cJobTitle":"行政"},{"cDeptId":2,"cName":"謝晉純","cJobTitle":"總務"},{"cDeptId":3,"cName":"江芝藺","cJobTitle":"會計"},{"cDeptId":3,"cName":"柯吟潔","cJobTitle":"會計"},{"cDeptId":4,"cName":"張育慈","cJobTitle":"會計助理"},{"cDeptId":4,"cName":"唐小娟","cJobTitle":"出納"},{"cDeptId":38,"cName":"吳睿浤","cJobTitle":"副總"},{"cDeptId":40,"cName":"羅志輝","cJobTitle":"副總"},{"cDeptId":40,"cName":"簡志祥","cJobTitle":"專案"},{"cDeptId":38,"cName":"張威宗","cJobTitle":"副總"},{"cDeptId":40,"cName":"古揚慶","cJobTitle":"主委"},{"cDeptId":38,"cName":"李宜達","cJobTitle":"副總"},{"cDeptId":40,"cName":"陳柏均","cJobTitle":"主委"},{"cDeptId":40,"cName":"陳政明","cJobTitle":"主委"},{"cDeptId":40,"cName":"何建新","cJobTitle":"主委"},{"cDeptId":40,"cName":"陳上霖","cJobTitle":"主委"},{"cDeptId":38,"cName":"陳皆任","cJobTitle":"主委"},{"cDeptId":38,"cName":"林昌傑","cJobTitle":"主委"},{"cDeptId":40,"cName":"林昕熾","cJobTitle":"專案"},{"cDeptId":38,"cName":"陳君豪","cJobTitle":"主委"},{"cDeptId":38,"cName":"章肇峰","cJobTitle":"主委"},{"cDeptId":40,"cName":"崔詠勝","cJobTitle":"主委"},{"cDeptId":40,"cName":"吳奕廷","cJobTitle":"專案"},{"cDeptId":40,"cName":"黃思傑","cJobTitle":"專案"},{"cDeptId":40,"cName":"黃正智","cJobTitle":"專案"},{"cDeptId":38,"cName":"徐明璠","cJobTitle":"專案"},{"cDeptId":38,"cName":"林志軒","cJobTitle":"專案"},{"cDeptId":40,"cName":"張豈銘","cJobTitle":"專案"},{"cDeptId":40,"cName":"鄭家隆","cJobTitle":"專案"},{"cDeptId":38,"cName":"張源津","cJobTitle":"專案"},{"cDeptId":40,"cName":"游仁傑","cJobTitle":"專案"},{"cDeptId":40,"cName":"陳柏安","cJobTitle":"專案"},{"cDeptId":38,"cName":"柯凱喬","cJobTitle":"專案"},{"cDeptId":38,"cName":"林子翔","cJobTitle":"專案"},{"cDeptId":38,"cName":"楊偉民","cJobTitle":"專案"},{"cDeptId":40,"cName":"李尚睿","cJobTitle":"專案"},{"cDeptId":40,"cName":"王璿維","cJobTitle":"專案"},{"cDeptId":40,"cName":"方人傑","cJobTitle":"專案"},{"cDeptId":40,"cName":"孫達侖","cJobTitle":"專案"},{"cDeptId":40,"cName":"李浩群","cJobTitle":"副專"},{"cDeptId":38,"cName":"陳泊凰","cJobTitle":"專案"},{"cDeptId":40,"cName":"馮天旻","cJobTitle":"專案"},{"cDeptId":40,"cName":"林育郡","cJobTitle":"副專"},{"cDeptId":40,"cName":"劉嘉鵬","cJobTitle":"專案"},{"cDeptId":40,"cName":"曾建勛","cJobTitle":"專案"},{"cDeptId":40,"cName":"李謙","cJobTitle":"專案"},{"cDeptId":38,"cName":"楊長樺","cJobTitle":"副專"},{"cDeptId":40,"cName":"林柏安","cJobTitle":"副專"},{"cDeptId":40,"cName":"王騰源","cJobTitle":"副專"},{"cDeptId":40,"cName":"王騰輝","cJobTitle":"專案"},{"cDeptId":40,"cName":"石卜元","cJobTitle":"專案"},{"cDeptId":38,"cName":"高振原","cJobTitle":"專案"},{"cDeptId":38,"cName":"葉哲宏","cJobTitle":"專案"},{"cDeptId":38,"cName":"楊雲翔","cJobTitle":"專案"},{"cDeptId":40,"cName":"陳俊權","cJobTitle":"專案"},{"cDeptId":38,"cName":"柯韋仲","cJobTitle":"專案"},{"cDeptId":38,"cName":"邱世華","cJobTitle":"副專"},{"cDeptId":38,"cName":"黃顯智","cJobTitle":"專案"},{"cDeptId":40,"cName":"羅秉鏞","cJobTitle":"副專"},{"cDeptId":40,"cName":"杜保翰","cJobTitle":"副專"},{"cDeptId":38,"cName":"陳奭霖","cJobTitle":"業務"},{"cDeptId":38,"cName":"韓鈞承","cJobTitle":"副專"},{"cDeptId":40,"cName":"李沁岳","cJobTitle":"副專"},{"cDeptId":40,"cName":"黃意瑄","cJobTitle":"副專"},{"cDeptId":38,"cName":"江孟烜","cJobTitle":"副專"},{"cDeptId":38,"cName":"柯兆鴻","cJobTitle":"業務"},{"cDeptId":40,"cName":"林永于","cJobTitle":"副專"},{"cDeptId":40,"cName":"潘宣仁","cJobTitle":"業務"},{"cDeptId":40,"cName":"李繼賢","cJobTitle":"副專"},{"cDeptId":38,"cName":"鍾宇翔","cJobTitle":"業務"},{"cDeptId":40,"cName":"李業强","cJobTitle":"專案"},{"cDeptId":38,"cName":"陳壹和","cJobTitle":"副專"},{"cDeptId":38,"cName":"石仲豪","cJobTitle":"業務"},{"cDeptId":40,"cName":"巫瑞琪","cJobTitle":"副專"},{"cDeptId":40,"cName":"楊向志","cJobTitle":"副專"},{"cDeptId":40,"cName":"歐陽汎祈","cJobTitle":"副專"},{"cDeptId":38,"cName":"楊森評","cJobTitle":"專案"},{"cDeptId":40,"cName":"吳宇麟","cJobTitle":"副專"},{"cDeptId":40,"cName":"王郁喬","cJobTitle":"業務"},{"cDeptId":38,"cName":"林韋廷","cJobTitle":"業務"},{"cDeptId":40,"cName":"張博瑜","cJobTitle":"副專"},{"cDeptId":38,"cName":"郭宥名","cJobTitle":"業務"},{"cDeptId":38,"cName":"蕭丞佑","cJobTitle":"業務"},{"cDeptId":40,"cName":"張均志","cJobTitle":"副專"},{"cDeptId":40,"cName":"彭芷芸","cJobTitle":"副專"},{"cDeptId":40,"cName":"黃麒爾","cJobTitle":"副專"},{"cDeptId":40,"cName":"葉聖群","cJobTitle":"副專"},{"cDeptId":40,"cName":"沈友祥","cJobTitle":"專案"},{"cDeptId":40,"cName":"程子耘","cJobTitle":"業務"},{"cDeptId":40,"cName":"沈明煒","cJobTitle":"業務"},{"cDeptId":38,"cName":"陳宥霖","cJobTitle":"副專"},{"cDeptId":40,"cName":"黃品豪","cJobTitle":"業務"},{"cDeptId":40,"cName":"韓宗諭","cJobTitle":"業務"},{"cDeptId":40,"cName":"蘇子鴻","cJobTitle":"業務"},{"cDeptId":38,"cName":"林禮辰","cJobTitle":"業務"},{"cDeptId":38,"cName":"魏宏澤","cJobTitle":"業務"},{"cDeptId":38,"cName":"林奕彣","cJobTitle":"業務"},{"cDeptId":40,"cName":"王宸鍾","cJobTitle":"業務"},{"cDeptId":38,"cName":"易子禔","cJobTitle":"業務"},{"cDeptId":38,"cName":"李淇樺","cJobTitle":"業務"},{"cDeptId":38,"cName":"顏子淯","cJobTitle":"業務"},{"cDeptId":40,"cName":"呂苡瑄","cJobTitle":"業務"},{"cDeptId":40,"cName":"徐子祐","cJobTitle":"業務"},{"cDeptId":40,"cName":"蔡易恩","cJobTitle":"業務"},{"cDeptId":38,"cName":"陳泳翰","cJobTitle":"業務"},{"cDeptId":38,"cName":"任珊","cJobTitle":"業務"},{"cDeptId":38,"cName":"吳俊緯","cJobTitle":"業務"},{"cDeptId":40,"cName":"林禹丞","cJobTitle":"副專"},{"cDeptId":40,"cName":"劉文中","cJobTitle":"專案"},{"cDeptId":40,"cName":"林能偉","cJobTitle":"業務"},{"cDeptId":38,"cName":"李毓辰","cJobTitle":"業務"},{"cDeptId":38,"cName":"唐翊豪","cJobTitle":"業務"},{"cDeptId":38,"cName":"詹子弘","cJobTitle":"業務"},{"cDeptId":40,"cName":"鍾丞翰","cJobTitle":"業務"},{"cDeptId":38,"cName":"陳昶霖","cJobTitle":"業務"},{"cDeptId":38,"cName":"張欽睿","cJobTitle":"業務"},{"cDeptId":38,"cName":"詹子恩","cJobTitle":"業務"},{"cDeptId":40,"cName":"莊珈禎","cJobTitle":"業務"},{"cDeptId":38,"cName":"蔡吟暄","cJobTitle":"業務"},{"cDeptId":40,"cName":"陳宜嫺","cJobTitle":"銷售"},{"cDeptId":40,"cName":"魏秀鳳","cJobTitle":"銷售"},{"cDeptId":40,"cName":"毛宣雯","cJobTitle":"銷售"},{"cDeptId":38,"cName":"王玉旼","cJobTitle":"銷售"},{"cDeptId":40,"cName":"危小娟","cJobTitle":"銷售"},{"cDeptId":40,"cName":"温淑惠","cJobTitle":"銷售"},{"cDeptId":40,"cName":"張麗瑩","cJobTitle":"銷售"},{"cDeptId":40,"cName":"吳佳蓉","cJobTitle":"銷售"},{"cDeptId":40,"cName":"陳思帆","cJobTitle":"銷售"},{"cDeptId":40,"cName":"李貞儀","cJobTitle":"銷售"},{"cDeptId":38,"cName":"江佩雯","cJobTitle":"銷售"},{"cDeptId":38,"cName":"趙語暄","cJobTitle":"銷售"},{"cDeptId":40,"cName":"葉世虹","cJobTitle":"銷售"},{"cDeptId":40,"cName":"白子芸","cJobTitle":"銷售"},{"cDeptId":40,"cName":"張盈迎","cJobTitle":"銷售"},{"cDeptId":40,"cName":"黃春梅","cJobTitle":"銷售"},{"cDeptId":40,"cName":"葉純吟","cJobTitle":"銷售"},{"cDeptId":40,"cName":"邱瑋婷","cJobTitle":"銷售"},{"cDeptId":40,"cName":"許家甄","cJobTitle":"銷售"},{"cDeptId":40,"cName":"羅秀美","cJobTitle":"銷售"},{"cDeptId":40,"cName":"黃珮貞","cJobTitle":"銷售"},{"cDeptId":38,"cName":"沈馪如","cJobTitle":"銷售"},{"cDeptId":40,"cName":"張珮瑛","cJobTitle":"銷售"},{"cDeptId":38,"cName":"黃詩婷","cJobTitle":"銷售"},{"cDeptId":40,"cName":"李麗娟","cJobTitle":"銷售"},{"cDeptId":38,"cName":"陳乃菱","cJobTitle":"銷售"},{"cDeptId":40,"cName":"廖雅騏","cJobTitle":"銷售"},{"cDeptId":40,"cName":"郭波","cJobTitle":"銷售"},{"cDeptId":40,"cName":"陳瑩珊","cJobTitle":"銷售"},{"cDeptId":40,"cName":"林又霏","cJobTitle":"銷售"},{"cDeptId":40,"cName":"陳沛然","cJobTitle":"銷售"},{"cDeptId":40,"cName":"林曉飛","cJobTitle":"銷售"},{"cDeptId":38,"cName":"蔡佩玲","cJobTitle":"銷售"},{"cDeptId":40,"cName":"黃阿慎","cJobTitle":"銷售"},{"cDeptId":40,"cName":"林家莉","cJobTitle":"銷售"},{"cDeptId":40,"cName":"袁心怡","cJobTitle":"銷售"},{"cDeptId":38,"cName":"林雁婷","cJobTitle":"銷售"},{"cDeptId":40,"cName":"楊婕瑜","cJobTitle":"銷售"},{"cDeptId":40,"cName":"賴芝卉","cJobTitle":"銷售"},{"cDeptId":40,"cName":"李婉儀","cJobTitle":"銷售"},{"cDeptId":40,"cName":"曾宇葳","cJobTitle":"銷售"},{"cDeptId":40,"cName":"莊淑芳","cJobTitle":"銷售"},{"cDeptId":38,"cName":"陳美夙","cJobTitle":"銷售"},{"cDeptId":38,"cName":"林晏鈴","cJobTitle":"銷售"},{"cDeptId":40,"cName":"陳伶俐","cJobTitle":"銷售"},{"cDeptId":40,"cName":"林家綺","cJobTitle":"銷售"},{"cDeptId":40,"cName":"劉美琪","cJobTitle":"銷售"},{"cDeptId":40,"cName":"方俐云","cJobTitle":"銷售"},{"cDeptId":38,"cName":"蔡美惠","cJobTitle":"銷售"},{"cDeptId":40,"cName":"劉名媗","cJobTitle":"銷售"},{"cDeptId":40,"cName":"朱嘉羚","cJobTitle":"銷售"},{"cDeptId":40,"cName":"趙珆萱","cJobTitle":"銷售"},{"cDeptId":40,"cName":"胡依璇","cJobTitle":"銷售"},{"cDeptId":40,"cName":"方麗敏","cJobTitle":"銷售"},{"cDeptId":3,"cName":"周怡樺","cJobTitle":"會計"},{"cDeptId":3,"cName":"陳慈崴","cJobTitle":"會計"},{"cDeptId":2,"cName":"郭宜蓁","cJobTitle":"資產管理"},{"cDeptId":4,"cName":"陳函瑱","cJobTitle":"會計助理"},{"cDeptId":4,"cName":"尤瑞寧","cJobTitle":"發包管理"},{"cDeptId":38,"cName":"郭書堯","cJobTitle":"業務"},{"cDeptId":40,"cName":"曾文逸","cJobTitle":"業務"},{"cDeptId":40,"cName":"高煜傑","cJobTitle":"業務"},{"cDeptId":38,"cName":"楊盛文","cJobTitle":"業務"},{"cDeptId":40,"cName":"李凱豐","cJobTitle":"業務"},{"cDeptId":40,"cName":"蘇泳銨","cJobTitle":"銷售"},{"cDeptId":40,"cName":"張勻筑","cJobTitle":"銷售"},{"cDeptId":40,"cName":"李曉玲","cJobTitle":"銷售"},{"cDeptId":40,"cName":"徐偉玲","cJobTitle":"銷售"},{"cDeptId":38,"cName":"陳綉惠","cJobTitle":"銷售"},{"cDeptId":38,"cName":"洪愛倫","cJobTitle":"銷售"},{"cDeptId":38,"cName":"曾琬喬","cJobTitle":"銷售"},{"cDeptId":38,"cName":"陳姣潔","cJobTitle":"銷售"}]};
+
+        const viewerSites = ['皇普MOMA', '昕見築', '長堤凰澄', '智匯學'];
+
+        // Prototype：目前登入者（用於「選擇自己」）
+        const currentUserName = '黃于凌';
+
+        // 查看對象：當前選取（用於查詢篩選）
+        let viewerSelection = null;
+
+        const deptIdNameMap = Object.fromEntries(orgData.deptList.map((d) => [String(d.cDeptId), d.cDeptName]));
+        const deptNameIdMap = Object.fromEntries(orgData.deptList.map((d) => [String(d.cDeptName), String(d.cDeptId)]));
+        const deptLeafNameIdMap = (() => {
+            const map = {};
+            orgData.deptList.forEach((d) => {
+                const name = String(d.cDeptName || '');
+                const leaf = name.includes('-') ? name.split('-').pop().trim() : name.trim();
+                if (!leaf) return;
+                if (!map[leaf]) map[leaf] = String(d.cDeptId);
+            });
+            return map;
+        })();
+        const memberByNameMap = (() => {
+            const map = {};
+            orgData.memberList.forEach((m) => {
+                if (!m || !m.cName) return;
+                if (!map[m.cName]) map[m.cName] = m;
+            });
+            return map;
+        })();
+
+        const membersByDeptIdMap = (() => {
+            const map = {};
+            orgData.memberList.forEach((m) => {
+                const deptId = String(m.cDeptId);
+                if (!map[deptId]) map[deptId] = [];
+                map[deptId].push(m);
+            });
+            Object.keys(map).forEach((deptId) => {
+                map[deptId].sort((a, b) => String(a.cName).localeCompare(String(b.cName), 'zh-Hant'));
+            });
+            return map;
+        })();
+
+        function getItemDeptId(item) {
+            if (item && item.cDeptId) return item.cDeptId;
+            const m = memberByNameMap[item && item.applicantName ? item.applicantName : ''];
+            if (m) return m.cDeptId;
+
+            const deptText = String((item && item.department) ? item.department : '').trim();
+            if (deptText) {
+                if (deptNameIdMap[deptText]) return deptNameIdMap[deptText];
+                if (deptLeafNameIdMap[deptText]) return deptLeafNameIdMap[deptText];
+            }
+            return '';
+        }
+
+        function getDeptNameById(deptId) {
+            if (!deptId) return '';
+            return deptIdNameMap[String(deptId)] || '';
+        }
+
+        function getItemOrgDisplay(item) {
+            const deptName = getDeptNameById(getItemDeptId(item));
+            return deptName || '-';
+        }
+
+        const viewerOrgTree = buildOrgTreeFromOrgData();
+
+        function buildOrgTreeFromOrgData() {
+            const root = { type: 'root', label: '組織', children: [] };
+            const groupMap = new Map();
+            const deptNodeById = new Map();
+
+            function getOrCreateGroup(parentKey, label) {
+                const key = `${parentKey}/${label}`;
+                if (groupMap.has(key)) return groupMap.get(key);
+                const node = { type: 'group', label, children: [] };
+                groupMap.set(key, node);
+                return node;
+            }
+
+            function ensureChild(parent, child) {
+                parent.children.push(child);
+            }
+
+            // 先建部門節點（用 cDeptName 的 '-' 分層，節點綁定 cDeptId）
+            orgData.deptList.forEach((d) => {
+                const name = String(d.cDeptName || '').trim();
+                if (!name) return;
+                const parts = name.split('-').map((p) => p.trim()).filter(Boolean);
+
+                let parent = root;
+                let parentKey = 'root';
+                for (let i = 0; i < parts.length - 1; i++) {
+                    const group = getOrCreateGroup(parentKey, parts[i]);
+                    if (!parent.children.includes(group)) ensureChild(parent, group);
+                    parent = group;
+                    parentKey = `${parentKey}/${parts[i]}`;
+                }
+
+                const leafLabel = parts.length > 1 ? parts[parts.length - 1] : parts[0];
+                const deptNode = {
+                    type: 'dept',
+                    label: leafLabel,
+                    cDeptId: d.cDeptId,
+                    cDeptName: name,
+                    children: []
+                };
+                ensureChild(parent, deptNode);
+                deptNodeById.set(String(d.cDeptId), deptNode);
+            });
+
+            // 再掛上成員（掛在對應部門節點下）
+            Object.keys(membersByDeptIdMap).forEach((deptId) => {
+                const deptNode = deptNodeById.get(deptId);
+                if (!deptNode) return;
+                membersByDeptIdMap[deptId].forEach((m) => {
+                    deptNode.children.push({ type: 'person', label: m.cName, cDeptId: m.cDeptId });
+                });
+            });
+
+            // 排序：群組/部門在前，成員在後
+            function sortNode(node) {
+                if (!node.children) return;
+                node.children.sort((a, b) => {
+                    const order = (n) => (n.type === 'person' ? 2 : n.type === 'dept' ? 1 : 0);
+                    const oa = order(a);
+                    const ob = order(b);
+                    if (oa !== ob) return oa - ob;
+                    return String(a.label).localeCompare(String(b.label), 'zh-Hant');
+                });
+                node.children.forEach(sortNode);
+            }
+            sortNode(root);
+            return root;
+        }
+
+        function updateViewerTypeUI() {
+            const type = document.getElementById('viewerType').value;
+            const targetEl = document.getElementById('viewerTarget');
+            const selectBtn = document.getElementById('viewerSelectBtn');
+
+            if (!type) {
+                targetEl.placeholder = '';
+                selectBtn.disabled = true;
+            } else {
+                targetEl.placeholder = '請選擇查看對象';
+                selectBtn.disabled = false;
+            }
+        }
+
+        function updateCategoryFieldVisibility() {
+            const viewerType = document.getElementById('viewerType').value;
+            const isSelfOrg =
+                viewerType === 'org' &&
+                viewerSelection &&
+                viewerSelection.kind === 'org-person' &&
+                viewerSelection.name === currentUserName;
+
+            const viewerCol = document.getElementById('viewerCol');
+            const categoryCol = document.getElementById('categoryCol');
+            const categorySelect = document.getElementById('category');
+            const applicantField = document.getElementById('applicantField');
+            const applicantInput = document.getElementById('applicant');
+
+            if (categoryCol) categoryCol.style.display = isSelfOrg ? '' : 'none';
+
+            if (viewerCol) {
+                if (isSelfOrg) {
+                    viewerCol.classList.remove('col-md-12');
+                    viewerCol.classList.add('col-md-6');
+                } else {
+                    viewerCol.classList.remove('col-md-6');
+                    viewerCol.classList.add('col-md-12');
+                }
+            }
+
+            if (!isSelfOrg) {
+                if (categorySelect) categorySelect.value = '';
+                if (applicantField) applicantField.style.display = 'none';
+                if (applicantInput) applicantInput.value = '';
+                return;
+            }
+
+            toggleApplicantField();
+        }
+
+        function onViewerTypeChange() {
+            const targetEl = document.getElementById('viewerTarget');
+
+            targetEl.value = '';
+            viewerSelection = null;
+
+            updateViewerTypeUI();
+            updateCategoryFieldVisibility();
+
+            search();
+
+            const modalEl = document.getElementById('viewerModal');
+            if (modalEl.classList.contains('show')) {
+                renderViewerModalContent();
+            }
+        }
+
+        function setDefaultViewerSelf() {
+            const typeEl = document.getElementById('viewerType');
+            if (typeEl) typeEl.value = 'org';
+
+            document.getElementById('viewerTarget').value = '自己';
+            const m = memberByNameMap[currentUserName];
+            viewerSelection = { kind: 'org-person', name: currentUserName, cDeptId: m ? m.cDeptId : '' };
+        }
+
+        function selectViewer() {
+            const type = document.getElementById('viewerType').value;
+            if (!type) return;
+            renderViewerModalContent();
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('viewerModal'));
+            modal.show();
+        }
+
+        function renderViewerModalContent() {
+            const type = document.getElementById('viewerType').value;
+            const title = document.getElementById('viewerModalTitle');
+            const body = document.getElementById('viewerModalBody');
+
+            if (type === 'site') {
+                title.textContent = '選擇案場';
+                body.innerHTML = `
+                    <div class="mb-2 fw-semibold">選擇案場</div>
+                    <div class="list-group" id="viewerSiteList">
+                        <button type="button" class="list-group-item list-group-item-action" data-site="">不限</button>
+                        ${viewerSites
+                            .map(
+                                (s) =>
+                                    `<button type="button" class="list-group-item list-group-item-action" data-site="${escapeHtml(s)}">${escapeHtml(s)}</button>`
+                            )
+                            .join('')}
+                    </div>
+                `;
+
+                const list = document.getElementById('viewerSiteList');
+                list.addEventListener('click', (e) => {
+                    const btn = e.target.closest('button[data-site]');
+                    if (!btn) return;
+                    const site = btn.getAttribute('data-site') || '';
+                    if (!site) {
+                        setViewerTarget('不限', { kind: 'site', site: '' });
+                        return;
+                    }
+                    setViewerTarget(site, { kind: 'site', site });
+                });
+                return;
+            }
+
+            // org
+            title.textContent = '選擇部門/人員';
+            body.innerHTML = `
+                <div class="mb-3">
+                    <button type="button" class="btn btn-outline-secondary" onclick="selectSelfInOrg()">選擇自己</button>
+                </div>
+                <div id="viewerOrgTree"></div>
+            `;
+            const treeContainer = document.getElementById('viewerOrgTree');
+            treeContainer.appendChild(buildOrgNode(viewerOrgTree, 0));
+        }
+
+        function buildOrgNode(node, level) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'tree-item';
+
+            const hasChildren = Array.isArray(node.children) && node.children.length > 0;
+            const isPerson = node.type === 'person';
+            const isRoot = node.type === 'root';
+            const isDept = node.type === 'dept';
+            const isGroup = node.type === 'group';
+
+            const header = document.createElement('div');
+            header.className = 'd-flex align-items-center gap-2 py-1';
+            header.style.paddingLeft = `${level * 1.25}rem`;
+
+            if (hasChildren) {
+                const toggle = document.createElement('span');
+                toggle.className = 'tree-toggle';
+                toggle.innerHTML = '<i class="bi bi-caret-down"></i>';
+                header.appendChild(toggle);
+
+                const icon = document.createElement('i');
+                icon.className = 'bi bi-folder';
+                header.appendChild(icon);
+
+                const label = document.createElement('button');
+                label.type = 'button';
+                label.className = 'btn btn-link p-0 text-decoration-none fw-semibold';
+                label.textContent = node.label;
+                if (isDept) {
+                    label.onclick = () => selectOrgDept(node);
+                } else if (isGroup) {
+                    label.onclick = () => selectOrgGroup(node);
+                } else if (isRoot) {
+                    label.disabled = true;
+                }
+                header.appendChild(label);
+
+                const children = document.createElement('div');
+                children.className = 'tree-children';
+
+                node.children.forEach((child) => {
+                    children.appendChild(buildOrgNode(child, level + 1));
+                });
+
+                let expanded = true;
+                const update = () => {
+                    toggle.innerHTML = expanded ? '<i class="bi bi-caret-down"></i>' : '<i class="bi bi-caret-right"></i>';
+                    children.style.display = expanded ? '' : 'none';
+                };
+
+                toggle.addEventListener('click', () => {
+                    expanded = !expanded;
+                    update();
+                });
+                update();
+                wrapper.appendChild(header);
+                wrapper.appendChild(children);
+                return wrapper;
+            }
+
+            // leaf
+            const spacer = document.createElement('span');
+            spacer.style.width = '1rem';
+            header.appendChild(spacer);
+
+            const icon = document.createElement('i');
+            icon.className = isPerson ? 'bi bi-person' : 'bi bi-folder2';
+            header.appendChild(icon);
+
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-link p-0 text-decoration-none';
+            btn.textContent = node.label;
+            if (isPerson) {
+                btn.onclick = () => selectOrgPerson(node);
+            } else if (isDept) {
+                btn.onclick = () => selectOrgDept(node);
+            }
+            header.appendChild(btn);
+
+            wrapper.appendChild(header);
+            return wrapper;
+        }
+
+        function setViewerTarget(text, selection) {
+            document.getElementById('viewerTarget').value = text;
+            viewerSelection = selection || null;
+            const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('viewerModal'));
+            modal.hide();
+            updateCategoryFieldVisibility();
+            search();
+        }
+
+        function selectSelfInOrg() {
+            const m = memberByNameMap[currentUserName];
+            setViewerTarget('自己', { kind: 'org-person', name: currentUserName, cDeptId: m ? m.cDeptId : '' });
+        }
+
+        function collectDeptIds(node) {
+            const ids = [];
+            function walk(n) {
+                if (n && n.type === 'dept' && n.cDeptId) ids.push(String(n.cDeptId));
+                if (n && Array.isArray(n.children)) n.children.forEach(walk);
+            }
+            walk(node);
+            return [...new Set(ids)];
+        }
+
+        function collectMemberNamesByDeptIds(deptIds) {
+            const names = [];
+            (deptIds || []).forEach((deptId) => {
+                const list = membersByDeptIdMap[String(deptId)] || [];
+                list.forEach((m) => {
+                    if (m && m.cName) names.push(m.cName);
+                });
+            });
+            return [...new Set(names)];
+        }
+
+        function selectOrgDept(node) {
+            const deptIds = collectDeptIds(node);
+            const memberNames = collectMemberNamesByDeptIds(deptIds);
+            setViewerTarget(node.cDeptName || node.label, {
+                kind: 'org-dept',
+                cDeptId: node.cDeptId,
+                deptIds,
+                memberNames
+            });
+        }
+
+        function selectOrgGroup(node) {
+            const deptIds = collectDeptIds(node);
+            const memberNames = collectMemberNamesByDeptIds(deptIds);
+            setViewerTarget(node.label, {
+                kind: 'org-dept',
+                deptIds,
+                memberNames
+            });
+        }
+
+        function selectOrgPerson(node) {
+            setViewerTarget(node.label, {
+                kind: 'org-person',
+                name: node.label,
+                cDeptId: node.cDeptId
+            });
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        // Prototype：若假資料沒帶編號/名稱，則用規則動態產生，讓查詢條件可示範。
+        function getItemApplyNo(item, index) {
+            if (item && item.applyNo) return String(item.applyNo);
+            const yyyymmdd = ((item && item.applyTime) ? item.applyTime.split(' ')[0] : '').replaceAll('/', '');
+            const seq = String(index + 1).padStart(4, '0');
+            return yyyymmdd ? `APP-${yyyymmdd}-${seq}` : `APP-${seq}`;
+        }
+
+        function getItemCaseNo(item, index) {
+            if (item && item.caseNo) return String(item.caseNo);
+            const seq = String(index + 1).padStart(5, '0');
+            return `CASE-${seq}`;
+        }
+
+        function getItemCaseName(item, index) {
+            if (item && item.caseName) return String(item.caseName);
+            const site = (item && item.site) ? item.site : '未指定案場';
+            const seq = String(index + 1).padStart(2, '0');
+            return `${site} 案件${seq}`;
+        }
+
+        // 查詢結果：依狀態切換 Tab
+        const statusTabOrder = ['審批中', '被取消', '被暫停', '已結案'];
+        let activeStatusTab = statusTabOrder[0];
+        let lastStatusGroupedResults = null;
+
+        function groupResultsByStatus(results) {
+            const grouped = Object.fromEntries(statusTabOrder.map((s) => [s, []]));
+            (results || []).forEach((item) => {
+                const s = String(item && item.status ? item.status : '').trim();
+                if (grouped[s]) grouped[s].push(item);
+            });
+            return grouped;
+        }
+
+        function renderStatusTabs(grouped) {
+            const tabsEl = document.getElementById('statusTabs');
+            if (!tabsEl) return;
+
+            const counts = Object.fromEntries(statusTabOrder.map((s) => [s, (grouped && grouped[s] ? grouped[s].length : 0)]));
+            const hasAny = statusTabOrder.some((s) => counts[s] > 0);
+
+            if (!activeStatusTab || !statusTabOrder.includes(activeStatusTab)) {
+                activeStatusTab = statusTabOrder[0];
+            }
+            if (hasAny && counts[activeStatusTab] === 0) {
+                const firstWithData = statusTabOrder.find((s) => counts[s] > 0);
+                if (firstWithData) activeStatusTab = firstWithData;
+            }
+
+            tabsEl.innerHTML = '';
+            statusTabOrder.forEach((status) => {
+                const li = document.createElement('li');
+                li.className = 'nav-item';
+                li.role = 'presentation';
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `nav-link${status === activeStatusTab ? ' active' : ''}`;
+                btn.setAttribute('role', 'tab');
+                btn.setAttribute('aria-selected', status === activeStatusTab ? 'true' : 'false');
+                btn.textContent = status === '已結案' ? status : `${status}（${counts[status]}）`;
+                btn.onclick = () => {
+                    activeStatusTab = status;
+                    renderStatusTabs(lastStatusGroupedResults || grouped);
+                    displayResults((lastStatusGroupedResults || grouped)[activeStatusTab] || []);
+                };
+
+                li.appendChild(btn);
+                tabsEl.appendChild(li);
+            });
+        }
+
+        function displayResultsWithStatusTabs(results) {
+            lastStatusGroupedResults = groupResultsByStatus(results);
+            renderStatusTabs(lastStatusGroupedResults);
+            displayResults(lastStatusGroupedResults[activeStatusTab] || []);
+        }
+
+        // 顯示結果
+        function displayResults(results) {
+            const tbody = document.getElementById('resultTable');
+            const countDiv = document.getElementById('resultCount');
+            const tableContainer = document.getElementById('tableContainer');
+            const tableHead = tableContainer.querySelector('thead tr');
+            
+            countDiv.textContent = `查詢結果：共 ${results.length} 筆資料`;
+            tbody.innerHTML = '';
+
+            // 如果沒有資料，隱藏表格
+            if (results.length === 0) {
+                tableContainer.classList.add('empty');
+                return;
+            }
+
+            // 有資料時顯示表格
+            tableContainer.classList.remove('empty');
+
+            // 根據表單類型調整表格標題
+            const form = document.getElementById('form').value;
+            const showOrgColumn = document.getElementById('viewerType').value === 'org';
+            if (form === '人事｜試用員工考核表') {
+                tableHead.innerHTML = `
+                    <th>案場</th>
+                    ${showOrgColumn ? '<th>組織</th>' : ''}
+                    <th>員工姓名</th>
+                    <th>現職單位</th>
+                    <th>狀態</th>
+                    <th>送單人</th>
+                    <th>申請日期</th>
+                    <th>目前關卡</th>
+                    <th>操作</th>
+                `;
+            } else if (form === '會議記錄') {
+                tableHead.innerHTML = `
+                    <th>週會/月會</th>
+                    ${showOrgColumn ? '<th>組織</th>' : ''}
+                    <th>時間</th>
+                    <th>地點</th>
+                    <th>主席</th>
+                    <th>紀錄</th>
+                    <th>狀態</th>
+                    <th>送單人</th>
+                    <th>申請日期</th>
+                    <th>目前關卡</th>
+                    <th>操作</th>
+                `;
+            } else {
+                tableHead.innerHTML = `
+                    <th>案場</th>
+                    ${showOrgColumn ? '<th>組織</th>' : ''}
+                    <th>申請人</th>
+                    <th>狀態</th>
+                    <th>送單人</th>
+                    <th>申請日期</th>
+                    <th>目前關卡</th>
+                    <th>操作</th>
+                `;
+            }
+
+            results.forEach((item, index) => {
+                const sourceIndex = data.indexOf(item);
+                const openIndex = sourceIndex >= 0 ? sourceIndex : index;
+                const row = document.createElement('tr');
+                
+                if (form === '人事｜試用員工考核表') {
+                    row.innerHTML = `
+                        <td>${item.site}</td>
+                        ${showOrgColumn ? `<td>${getItemOrgDisplay(item)}</td>` : ''}
+                        <td>${item.applicantName}</td>
+                        <td>${item.department || '-'}</td>
+                        <td>${item.status}</td>
+                        <td>${item.applicant}</td>
+                        <td>${item.applyTime}</td>
+                        <td>${item.currentStage}</td>
+                        <td>
+                            <button class="btn btn-open" onclick="openForm(${openIndex})">開啟</button>
+                        </td>
+                    `;
+                } else if (form === '會議記錄') {
+                    row.innerHTML = `
+                        <td>${item.meetingType}</td>
+                        ${showOrgColumn ? `<td>${getItemOrgDisplay(item)}</td>` : ''}
+                        <td>${item.meetingTime}</td>
+                        <td>${item.location}</td>
+                        <td>${item.chairman}</td>
+                        <td>${item.recorder}</td>
+                        <td>${item.status}</td>
+                        <td>${item.applicant}</td>
+                        <td>${item.applyTime}</td>
+                        <td>${item.currentStage}</td>
+                        <td>
+                            <button class="btn btn-open" onclick="openForm(${openIndex})">開啟</button>
+                        </td>
+                    `;
+                } else {
+                    row.innerHTML = `
+                        <td>${item.site}</td>
+                        ${showOrgColumn ? `<td>${getItemOrgDisplay(item)}</td>` : ''}
+                        <td>${item.applicantName}</td>
+                        <td>${item.status}</td>
+                        <td>${item.applicant}</td>
+                        <td>${item.applyTime}</td>
+                        <td>${item.currentStage}</td>
+                        <td>
+                            <button class="btn btn-open" onclick="openForm(${openIndex})">開啟</button>
+                        </td>
+                    `;
+                }
+                tbody.appendChild(row);
+            });
+        }
+
+        // 申請表單函數
+        function applyForm() {
+            // 這裡可以加入申請表單的邏輯
+            alert('開啟申請表單');
+            // 例如：window.location.href = 'apply_form.html';
+        }
+
+        // 匯出資料函數
+        function exportData() {
+            const results = (lastStatusGroupedResults && lastStatusGroupedResults[activeStatusTab]) ? lastStatusGroupedResults[activeStatusTab] : [];
+            if (!results.length) {
+                alert('目前無可匯出資料');
+                return;
+            }
+
+            const form = document.getElementById('form').value;
+            const showOrgColumn = document.getElementById('viewerType').value === 'org';
+
+            let columns = [];
+            if (form === '人事｜試用員工考核表') {
+                columns = [
+                    { header: '案場', value: (item) => item.site },
+                    ...(showOrgColumn ? [{ header: '組織', value: (item) => getItemOrgDisplay(item) }] : []),
+                    { header: '員工姓名', value: (item) => item.applicantName },
+                    { header: '現職單位', value: (item) => item.department || '-' }
+                ];
+            } else if (form === '會議記錄') {
+                columns = [
+                    { header: '週會/月會', value: (item) => item.meetingType },
+                    ...(showOrgColumn ? [{ header: '組織', value: (item) => getItemOrgDisplay(item) }] : []),
+                    { header: '時間', value: (item) => item.meetingTime },
+                    { header: '地點', value: (item) => item.location },
+                    { header: '主席', value: (item) => item.chairman },
+                    { header: '紀錄', value: (item) => item.recorder }
+                ];
+            } else {
+                columns = [
+                    { header: '案場', value: (item) => item.site },
+                    ...(showOrgColumn ? [{ header: '組織', value: (item) => getItemOrgDisplay(item) }] : []),
+                    { header: '申請人', value: (item) => item.applicantName }
+                ];
+            }
+
+            const headers = columns.map((c) => c.header);
+            const rows = results.map((item) => columns.map((c) => c.value(item)));
+            const csv = '\uFEFF' + toCSV(headers, rows);
+
+            const ts = new Date();
+            const pad2 = (n) => String(n).padStart(2, '0');
+            const ymd = `${ts.getFullYear()}${pad2(ts.getMonth() + 1)}${pad2(ts.getDate())}`;
+            const hm = `${pad2(ts.getHours())}${pad2(ts.getMinutes())}`;
+            const safeForm = String(form || '查詢結果').replaceAll(/[\\/:*?"<>|]/g, '_');
+            const safeStatus = String(activeStatusTab || '').replaceAll(/[\\/:*?"<>|]/g, '_');
+            const filename = `${safeForm}_${safeStatus}_${ymd}_${hm}.csv`;
+
+            downloadTextFile(filename, csv, 'text/csv;charset=utf-8');
+        }
+
+        function toCSV(headers, rows) {
+            const esc = (v) => {
+                const s = v === null || v === undefined ? '' : String(v);
+                const needsQuote = /[\r\n",]/.test(s);
+                const quoted = s.replaceAll('"', '""');
+                return needsQuote ? `"${quoted}"` : quoted;
+            };
+            const lines = [];
+            lines.push(headers.map(esc).join(','));
+            (rows || []).forEach((row) => {
+                lines.push((row || []).map(esc).join(','));
+            });
+            return lines.join('\r\n');
+        }
+
+        function downloadTextFile(filename, content, mimeType) {
+            const blob = new Blob([content], { type: mimeType || 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        // 開啟表單函數
+        function openForm(index) {
+            const item = data[index];
+            alert(`開啟表單：${item.formName}\n申請人：${item.applicantName}`);
+            // 這裡可以加入開啟表單的邏輯
+            // 例如：window.location.href = `form_detail.html?id=${index}`;
+        }
+
+        // 切換送單人欄位顯示
+        function toggleApplicantField() {
+            const category = document.getElementById('category').value;
+            const applicantField = document.getElementById('applicantField');
+
+            if (category === '行政') {
+                applicantField.style.display = 'block';
+            } else {
+                applicantField.style.display = 'none';
+                document.getElementById('applicant').value = '';
+            }
+        }
+
+        // 初始化
+        window.onload = function() {
+            initFormDropdown();
+            toggleApplicantField();
+            setDefaultViewerSelf();
+            updateViewerTypeUI();
+            updateCategoryFieldVisibility();
+            displayResultsWithStatusTabs([]); // 初始顯示 0 筆資料
+        };
+    </script>
+</body>
+</html>
